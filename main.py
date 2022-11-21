@@ -1,5 +1,18 @@
-def search_articles():
-    pass
+"""Working in progress NOT DONE"""
+def search_articles(dblp):
+    keywords = []
+    """Keywords input (case insensitive)"""
+    while True:
+        temp = input("Please enter the keyword you would like to search: ")
+        keywords.append(re.compile(temp, re.IGNORECASE))
+        if input("Press enter to search more keywords or enter n to show results: ") == "n":
+            break
+    """search in mongoDB"""
+    articles = None
+    for keyword in keywords:
+        articles = dblp.articles.find({'name': keyword})
+        for article in articles:
+            print(article)
 
 
 def search_authors():
