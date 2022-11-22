@@ -47,8 +47,33 @@ def search_articles(dblp):
             print(r)
 
 
-def search_authors():
-    pass
+def search_authors(dblp):
+    keyword = input("Please enter the keyword you would like to search: ")
+    re_key = re.compile(keyword, re.IGNORECASE)
+    """clear the authorsMatches collection"""
+    dblp.authorsMatches.drop()
+    """search all authors contained the keyword"""
+    for author in dblp.find({'authors': {"$regex": re_key}}, {'authors': 1, 'title': 1, 'venue': 1, 'year': 1}):
+        for target in author['authors']:
+            if bool(re.search(keyword, target, re.IGNORECASE)):
+                dblp.authorsMatches.insert_one(author)
+                dblp.authorsMatches.update_one({'authors': {"$regex": re_key}}, {"$set": {'authors': target}})
+    """sorted in descending order by year"""
+    dblp.authorsMatches.find().sort('year', -1)
+    authors = dblp.authorsMatches.find({}, {'_id': 0, 'authors': 1})
+    """print out results"""
+    print("Authors matched: \n")
+    for author in authors:
+        publications = dblp.authorsMatches.count_documents({'authors': author['authors']})
+        print(author)
+        print("Number of publications: ", end="")
+        print(publications)
+        print("---------------------------------------")
+    """print out all publications of selected author"""
+    selection = input("Please enter the name of author you would like to select: ")
+    results = dblp.authorsMatches.find({'authors': selection}, {'_id': 0, 'title': 1, 'year': 1, 'venue': 1})
+    for result in results:
+        print(result)
 
 
 def list_venues():
