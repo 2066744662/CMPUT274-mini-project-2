@@ -8,11 +8,9 @@ def search_articles(dblp):
         if input("Press enter to search more keywords or enter n to show results: ") == "n":
             break
     """search in mongoDB"""
-    articles = None
     for keyword in keywords:
-        articles = dblp.articles.find({'name': keyword})
-        for article in articles:
-            print(article)
+        for record in dblp.find({'authors': {"$regex": keyword}}):
+            print(record)
 
 
 def search_authors():
