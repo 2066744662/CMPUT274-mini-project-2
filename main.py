@@ -3,14 +3,29 @@ def search_articles(dblp):
     keywords = []
     """Keywords input (case insensitive)"""
     while True:
-        temp = input("Please enter the keyword you would like to search: ")
-        keywords.append(re.compile(temp, re.IGNORECASE))
-        if input("Press enter to search more keywords or enter n to show results: ") == "n":
+        temp = input("Please enter the keyword you would like to search or :q to end the search: ")
+        if temp == ":q":
             break
-    """search in mongoDB"""
+        else:
+            keywords.append(re.compile(temp, re.IGNORECASE))
+
+    """Clean the collection of search results"""
+    dblp.articleMatches.drop()
+    """search in database and add to collection of search results"""
     for keyword in keywords:
-        for record in dblp.find({'authors': {"$regex": keyword}}):
-            print(record)
+        for x in dblp.find({"$or": [{'authors': {"$regex": keyword}}, {'title': {"$regex": keyword}},
+                               {'abstract': {"$regex": keyword}}, {'venue': {"$regex": keyword}},
+                               {'year': {"$regex": keyword}}]}):
+            if len(list(dblp.articleMatches.find({'id': x['id']}))) == 0:
+                dblp.articleMatches.insert_one(x)
+    """deal with duplicates"""
+    dblp.articleMatches.aggregate([
+        {"$group": {"_id": "$title", "count": {"$sum": 1}}},
+        {"$match": {"_id": {"$ne": None}, "count": {"$gt": 1}}},
+        {"$project": {"title": "$_id", "_id": 0}}
+    ])
+    for article in dblp.articleMatches.find():
+        print(article)
 
 
 def search_authors():
