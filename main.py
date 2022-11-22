@@ -1,5 +1,12 @@
 """MAY NEED MORE TESTS"""
-def search_articles(dblp):
+import re
+
+from pymongo import MongoClient
+
+global dblp
+
+
+def search_articles():
     keywords = []
     """Keywords input (case insensitive)"""
     while True:
@@ -83,8 +90,28 @@ def list_venues():
 def add_article():
     pass
 
+def connect(port):
+    """
+    connect to the Mongodb dblp collection, save into global variable
+    :param port: (String) port number of MongoDB connection
+    """
+    global dblp
+    try:
+        client = MongoClient('mongodb://localhost:' + port)
+    except ValueError as e:
+        print(e)
+        port1 = input("Please input port number: ")
+        connect(port1)
+        return
+    db = client["291db"]
+    collist = db.list_collection_names()
+    if "dblp" not in collist:
+        raise Exception("dblp not found")
+    dblp = db["dblp"]
 
 if __name__ == "__main__":
+    port = input("Please input port number: ")
+    connect(port)
     print("_"*30)
     print("Welcome to the document store!\n1. Search for articles\n2. Search for authors\n3. List the venues\n4. Add "
           "an article\n5. End")
