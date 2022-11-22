@@ -54,7 +54,7 @@ def search_articles():
             print(r)
 
 
-def search_authors(dblp):
+def search_authors():
     keyword = input("Please enter the keyword you would like to search: ")
     re_key = re.compile(keyword, re.IGNORECASE)
     """clear the authorsMatches collection"""
