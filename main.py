@@ -1,4 +1,4 @@
-"""Working in progress NOT DONE"""
+"""MAY NEED MORE TESTS"""
 def search_articles(dblp):
     keywords = []
     """Keywords input (case insensitive)"""
@@ -24,8 +24,27 @@ def search_articles(dblp):
         {"$match": {"_id": {"$ne": None}, "count": {"$gt": 1}}},
         {"$project": {"title": "$_id", "_id": 0}}
     ])
-    for article in dblp.articleMatches.find():
+    """show results with order number to users for selection"""
+    order = 1
+    for article in dblp.articleMatches.find({}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1, 'venue': 1}):
+        print(str(order)+".", end="")
         print(article)
+        order += 1
+    id = input("Please enter the article id you would like to select: ")
+    print("---------------------------------------")
+    print("Selected Article: ")
+    """info of selected article included abstract & venue"""
+    for info in dblp.articleMatches.find({'id': id}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1, 'venue': 1, 'abstract': 1, 'authors': 1}):
+        print(info)
+    """info of all references of selected article"""
+    references = []
+    for reference in dblp.articleMatches.find({'id': id}, {'references': 1, '_id': 0}):
+        references.append(reference)
+    print("---------------------------------------")
+    print("References:")
+    for reference in references[0]['references']:
+        for r in dblp.find({'id': reference}, {'id': 1, 'title': 1, 'year': 1, '_id': 0}):
+            print(r)
 
 
 def search_authors():
