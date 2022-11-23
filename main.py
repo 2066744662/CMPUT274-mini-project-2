@@ -56,7 +56,35 @@ def search_articles():
     for order, reference in zip(list(references.keys()), list(references.values())):
         print(order, ". ", reference)
 
+def search_authors():
+    keyword = input("Please enter the keyword you would like to search: ")
+    re_key = re.compile(keyword, re.IGNORECASE)
 
+    """search all authors contained the keyword"""
+    authors = {}
+    for article in dblp.find({'authors': {"$regex": re_key}}, {'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1):
+        for author in article['authors']:
+            if bool(re.search(keyword, author, re.IGNORECASE)):
+                authors.update({article['title']: article})
+                authors[article['title']]['authors'] = author
+    publications = {}
+    for author in authors.values():
+        name = author['authors']
+        if name not in publications.keys():
+            publications[name] = 1
+        else:
+            publications[name] += 1
+    """print out results"""
+    print("Authors matched: \n")
+    for author, amount in zip(list(publications.keys()), list(publications.values())):
+        print("Name: ", author)
+        print("Number of publications: ", amount)
+        print("---------------------------------------")
+    """print out all publications of selected author"""
+    selection = input("Please enter the name of author you would like to select: ")
+    for article in dblp.find({'authors': {"$regex": selection}}, {'_id': 0, 'title': 1, 'year': 1, 'venue': 1}):
+        print(article)
+        
 def list_venues():
     pass
 
