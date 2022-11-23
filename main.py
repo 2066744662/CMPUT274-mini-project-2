@@ -8,50 +8,50 @@ global dblp
 
 def search_articles():
     keywords = []
+    
     """Keywords input (case insensitive)"""
     while True:
-        temp = input("Please enter the keyword you would like to search or :q to end the search: ")
-        if temp == ":q":
+        t = input("Please enter the keyword you would like to search or :q to end the search: ")
+        if t == ":q":
             break
         else:
-            keywords.append(re.compile(temp, re.IGNORECASE))
-
-    """Clean the collection of search results"""
-    dblp.articleMatches.drop()
+            keywords.append(re.compile(t, re.IGNORECASE))
+    
     """search in database and add to collection of search results"""
+    articles = []
     for keyword in keywords:
-        for x in dblp.find({"$or": [{'authors': {"$regex": keyword}}, {'title': {"$regex": keyword}},
-                               {'abstract': {"$regex": keyword}}, {'venue': {"$regex": keyword}},
-                               {'year': {"$regex": keyword}}]}):
-            if len(list(dblp.articleMatches.find({'id': x['id']}))) == 0:
-                dblp.articleMatches.insert_one(x)
-    """deal with duplicates"""
-    dblp.articleMatches.aggregate([
-        {"$group": {"_id": "$title", "count": {"$sum": 1}}},
-        {"$match": {"_id": {"$ne": None}, "count": {"$gt": 1}}},
-        {"$project": {"title": "$_id", "_id": 0}}
-    ])
+        for article in dblp.find({"$or": [{'authors': {"$regex": keyword}}, {'title': {"$regex": keyword}},
+                                    {'abstract': {"$regex": keyword}}, {'venue': {"$regex": keyword}},
+                                    {'year': {"$regex": keyword}}]}, {'_id': 1, 'id': 1, 'title': 1, 'year': 1, 'venue': 1, 'abstract': 1,
+                                                                      'authors': 1, 'references': 1}):
+            if articles['_id'] is None:
+                articles.append({article['_id']: article})
+    
     """show results with order number to users for selection"""
-    order = 1
-    for article in dblp.articleMatches.find({}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1, 'venue': 1}):
-        print(str(order)+".", end="")
-        print(article)
+    order = 0
+    for article in articles:
+        print("Article Matches: ")
+        print("%d. ", order)
+        print("ID: %s Title: %s Year: %s Venue: %s", article['_id']['id'], article['_id']['title'], article['_id']['year'], article['_id']['venue'])
         order += 1
-    id = input("Please enter the article id you would like to select: ")
+    
+    """user selection"""
+    selection = articles[int(input("Please enter order number of the article you would like to select: "))]['_id']
+    
+    """info of selected article included abstract & venue"""
     print("---------------------------------------")
     print("Selected Article: ")
-    """info of selected article included abstract & venue"""
-    for info in dblp.articleMatches.find({'id': id}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1, 'venue': 1, 'abstract': 1, 'authors': 1}):
-        print(info)
+    print("ID: %s Title: %s Year: %s Venue: %s Abstract: %s Authors: %s", selection['id'], selection['title'], selection['year'], selection['venue'], selection['abstract'], selection['authors'])
+    
     """info of all references of selected article"""
     references = []
-    for reference in dblp.articleMatches.find({'id': id}, {'references': 1, '_id': 0}):
+    for ref_id in selection['references']:
+        reference = dblp.find({'id': ref_id}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1})
         references.append(reference)
     print("---------------------------------------")
     print("References:")
-    for reference in references[0]['references']:
-        for r in dblp.find({'id': reference}, {'id': 1, 'title': 1, 'year': 1, '_id': 0}):
-            print(r)
+    for reference in references:
+        print("ID: %s Title: %s Year: %s", reference['id'], reference['title'], reference['year'])
 
 
 def search_authors():
