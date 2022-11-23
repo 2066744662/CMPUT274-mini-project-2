@@ -19,63 +19,40 @@ def search_articles():
     if keywords == "":
         return
 
+    articles = {}
+    order = 1
     """search in database and add to collection of search results"""
-    results = dblp.find({"$text": {"$search": keywords}})
-    
+    for article in dblp.find({"$text": {"$search": keywords}}):
+        if article not in articles.values():
+            articles.update({order: article})
+            order += 1
+
     """show results with order number to users for selection"""
-    order = 0
-    for article in articles:
-        print("Article Matches: ")
-        print("%d. ", order)
-        print("ID: %s Title: %s Year: %s Venue: %s", article['_id']['id'], article['_id']['title'], article['_id']['year'], article['_id']['venue'])
-        order += 1
-    
+    print("Article Matches: ")
+    for obj_id, article in zip(list(articles.keys()), list(articles.values())):
+        del article['_id']
+        print(obj_id, ". ", article)
+
     """user selection"""
-    selection = articles[int(input("Please enter order number of the article you would like to select: "))]['_id']
-    
+    user = input("Please enter order # of the article you would like to select: ")
+    selection = articles[int(user)]
+
     """info of selected article included abstract & venue"""
     print("---------------------------------------")
     print("Selected Article: ")
-    print("ID: %s Title: %s Year: %s Venue: %s Abstract: %s Authors: %s", selection['id'], selection['title'], selection['year'], selection['venue'], selection['abstract'], selection['authors'])
-    
+    print(selection)
+
     """info of all references of selected article"""
-    references = []
+    references = {}
+    order = 1
     for ref_id in selection['references']:
-        reference = dblp.find({'id': ref_id}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1})
-        references.append(reference)
+        for reference in dblp.find({'id': ref_id}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1}):
+            references.update({order: reference})
+            order += 1
     print("---------------------------------------")
     print("References:")
-    for reference in references:
-        print("ID: %s Title: %s Year: %s", reference['id'], reference['title'], reference['year'])
-
-
-def search_authors():
-    keyword = input("Please enter the keyword you would like to search: ")
-    re_key = re.compile(keyword, re.IGNORECASE)
-    """clear the authorsMatches collection"""
-    dblp.authorsMatches.drop()
-    """search all authors contained the keyword"""
-    for author in dblp.find({'authors': {"$regex": re_key}}, {'authors': 1, 'title': 1, 'venue': 1, 'year': 1}):
-        for target in author['authors']:
-            if bool(re.search(keyword, target, re.IGNORECASE)):
-                dblp.authorsMatches.insert_one(author)
-                dblp.authorsMatches.update_one({'authors': {"$regex": re_key}}, {"$set": {'authors': target}})
-    """sorted in descending order by year"""
-    dblp.authorsMatches.find().sort('year', -1)
-    authors = dblp.authorsMatches.find({}, {'_id': 0, 'authors': 1})
-    """print out results"""
-    print("Authors matched: \n")
-    for author in authors:
-        publications = dblp.authorsMatches.count_documents({'authors': author['authors']})
-        print(author)
-        print("Number of publications: ", end="")
-        print(publications)
-        print("---------------------------------------")
-    """print out all publications of selected author"""
-    selection = input("Please enter the name of author you would like to select: ")
-    results = dblp.authorsMatches.find({'authors': selection}, {'_id': 0, 'title': 1, 'year': 1, 'venue': 1})
-    for result in results:
-        print(result)
+    for order, reference in zip(list(references.keys()), list(references.values())):
+        print(order, ". ", reference)
 
 
 def list_venues():
