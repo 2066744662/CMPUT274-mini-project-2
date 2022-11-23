@@ -61,7 +61,33 @@ def list_venues():
 
 
 def add_article():
-    pass
+    """
+    Add a record into collection. Info gather by user input
+    """
+    id = input("Id: ")
+    title = input("Title: ")
+    authors = []
+    while True:
+        author = input("Input one author at a time, or input ! if complete")
+        if author == "!":
+            break
+        authors.append(author)
+    year = input("Year: ")
+    while True:
+        record = {"_id": id,
+                  "title": title,
+                  "authors": authors,
+                  "year": year,
+                  "abstract": None,
+                  "venue": None,
+                  "references": [],
+                  "n_citations": 0
+                  }
+        try:
+            dblp.insert_one(record)
+            break
+        except pymongo.errors.DuplicateKeyError:
+            id = input("key is not unique. Input a unique key: ")
 
 def connect(port):
     """
