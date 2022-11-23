@@ -7,25 +7,20 @@ global dblp
 
 
 def search_articles():
-    keywords = []
-    
+    keywords = ""
+
     """Keywords input (case insensitive)"""
     while True:
         t = input("Please enter the keyword you would like to search or :q to end the search: ")
         if t == ":q":
             break
         else:
-            keywords.append(re.compile(t, re.IGNORECASE))
-    
+            keywords += "\"" + t + "\""
+    if keywords == "":
+        return
+
     """search in database and add to collection of search results"""
-    articles = []
-    for keyword in keywords:
-        for article in dblp.find({"$or": [{'authors': {"$regex": keyword}}, {'title': {"$regex": keyword}},
-                                    {'abstract': {"$regex": keyword}}, {'venue': {"$regex": keyword}},
-                                    {'year': {"$regex": keyword}}]}, {'_id': 1, 'id': 1, 'title': 1, 'year': 1, 'venue': 1, 'abstract': 1,
-                                                                      'authors': 1, 'references': 1}):
-            if articles['_id'] is None:
-                articles.append({article['_id']: article})
+    results = dblp.find({"$text": {"$search": keywords}})
     
     """show results with order number to users for selection"""
     order = 0
