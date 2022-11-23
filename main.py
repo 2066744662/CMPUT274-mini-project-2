@@ -46,9 +46,10 @@ def search_articles():
     references = {}
     order = 1
     for ref_id in selection['references']:
-        for reference in dblp.find({'id': ref_id}, {'_id': 0, 'id': 1, 'title': 1, 'year': 1}):
-            references.update({order: reference})
-            order += 1
+        for article in articles.values():
+            if 'references' in article.keys() and ref_id in article['references']:
+                references.update({order: article})
+                order += 1
     print("---------------------------------------")
     print("References:")
     for order, reference in zip(list(references.keys()), list(references.values())):
