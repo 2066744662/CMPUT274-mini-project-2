@@ -80,7 +80,7 @@ class myThread (threading.Thread):
 
         for result in results:
             values = list(result.values())
-            token = str(tokenize(values))
+            token = list(tokenize(values))
             db["dblp"].update_one({"_id": values[0]}, {"$set": {"token": token}})
         print("--- %s seconds ---" % (time.time() - start_time))
 
