@@ -1,5 +1,5 @@
 from os import system
-from random import random
+import time
 
 import bson
 from pymongo import MongoClient
@@ -26,16 +26,16 @@ def connect():
     return db["temp"]
 
 def optimize():
+    start_time = time.time()
     collist = db.list_collection_names()
-    if "temp" in collist:
-        db["temp"].drop()
     temp = db["temp"]
     dblp = db["dblp"]
     results = temp.find()
     for result in results:
         values = list(result.values())
-        id = str(tokenize(values))
-        dblp.insert_one({"_id":id,"authors":result["authors"]})
+        token = str(tokenize(values))
+        temp.update_one({"_id":values[0]},{"$set":{"token":token}})
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def tokenize(object):
