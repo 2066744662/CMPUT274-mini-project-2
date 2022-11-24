@@ -56,35 +56,41 @@ def search_articles():
 
 
 def search_authors():
-    keyword = input("Please enter the keyword you would like to search: ")
-    re_key = re.compile(keyword, re.IGNORECASE)
-
+        keyword = input("Please enter the keyword you would like to search: ")
     """search all authors contained the keyword"""
     authors = {}
-    for article in dblp.find({'authors': {"$regex": re_key}},
-                             {'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1):
+    #results = dblp.find({'authors': {"$regex": re_key}},{'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1)
+    results = dblp.find({"$text":{"$search": keyword}},{"score": { "$meta": "textScore"}}).sort('year', -1)
+    for article in results:
+        if article["score"] < 10:
+            continue
         for author in article['authors']:
             if bool(re.search(keyword, author, re.IGNORECASE)):
-                authors.update({article['title']: article})
-                authors[article['title']]['authors'] = author
-    publications = {}
-    for author in authors.values():
-        name = author['authors']
-        if name not in publications.keys():
-            publications[name] = 1
-        else:
-            publications[name] += 1
+                if author in authors.keys():
+                    authors[author].append(article)
+                else:
+                    authors[author] = [article]
     """print out results"""
     print("Authors matched: \n")
-    for author, amount in zip(list(publications.keys()), list(publications.values())):
-        print("Name: ", author)
-        print("Number of publications: ", amount)
+    c = 0
+    authors_keys = list(authors.keys())
+    for author in authors_keys:
+        c += 1
+        print(c,": Name: ", author, " # of publications: ", len(authors[author]))
         print("---------------------------------------")
     """print out all publications of selected author"""
-    selection = input("Please enter the name of author you would like to select: ")
-    for article in dblp.find({'authors': {"$regex": selection}}, {'_id': 0, 'title': 1, 'year': 1, 'venue': 1}):
-        print(article)
-
+    while True:
+        selection = input("Please enter the index of author you would like to select: ")
+        try:
+            articles = authors[authors_keys[int(selection)-1]]
+            break
+        except ValueError:
+            print("Please input a number")
+        except IndexError as e:
+            print(e)
+    for article in articles:
+        print_article(article,["title","year","venue"],div="\n")
+        print("")
 
 def list_venues():
     venues = {}
@@ -122,8 +128,12 @@ def add_article():
     while True:
         author = input("Input one author at a time, or input ! if complete")
         if author == "!":
-            break
-        authors.append(author)
+            if authors:
+                break
+            else:
+                print("You have to input at least an author")
+        else:
+            authors.append(author)
     year = input("Year: ")
     while True:
         record = {"id": id,
@@ -135,11 +145,13 @@ def add_article():
                   "references": [],
                   "n_citations": 0
                   }
-        try:
-            dblp.insert_one(record)
-            break
-        except pymongo.errors.DuplicateKeyError:
+        results = dblp.count_documents({"id":id})
+        if results > 0:
             id = input("key is not unique. Input a unique key: ")
+        else:
+            dblp.insert_one(record)
+            print("Saved")
+            return
 
 
 def connect(port):
@@ -171,11 +183,14 @@ def print_article(article, fields=[], div=" | "):
     """
     if not fields:
         fields = article.keys()
-    for f in fields:
+    for f in fields[:len(fields)-1]:
         if f == "_id":
             continue
-        print(f, ' : ', article[f], end=div)
-    print("\n")
+        try:
+            print(f, ' : ', article[f], end=div)
+        except:
+            continue
+    print(fields[-1], ' : ', article[fields[-1]])
 
 
 if __name__ == "__main__":
