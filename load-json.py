@@ -1,8 +1,6 @@
 from os import system
-import time
 
-import bson
-from pymongo import MongoClient
+import pymongo
 global db
 
 def connect():
@@ -15,67 +13,27 @@ def connect():
     global db
     port = input("Input port number: ")
     filename = input("Input filename: ")
-    client = MongoClient('mongodb://localhost:' + port)
+    client = pymongo.MongoClient('mongodb://localhost:' + port)
     db = client["291db"]
     collist = db.list_collection_names()
     if "dblp" in collist:
         db["dblp"].drop()
-    if "temp" in collist:
-        db["temp"].drop()
-    system("mongoimport --port=" + port + " --db=291db --collection=temp --file=" + filename)
-    return db["temp"]
+    return db["dblp"]
 
-def optimize():
-    start_time = time.time()
-    collist = db.list_collection_names()
-    temp = db["temp"]
+def indexing():
+    """
+    create indexes
+    """
     dblp = db["dblp"]
-    results = temp.find()
-    for result in results:
-        values = list(result.values())
-        token = str(tokenize(values))
-        temp.update_one({"_id":values[0]},{"$set":{"token":token}})
-    print("--- %s seconds ---" % (time.time() - start_time))
-
-
-def tokenize(object):
-    """
-    Convert input into tokens.
-    :param object: object to tonkenize
-    :return: (set) set of tokens
-    """
-    if isinstance(object,list):
-        s = set()
-        for o in object:
-            ret = tokenize(o)
-            s = s.union(ret)
-        return s
-    elif isinstance(object, str):
-        return set(object.split())
-    elif isinstance(object, int):
-        s = set()
-        s.add(str(object))
-        return s
-    elif isinstance(object, bson.objectid.ObjectId):
-        return set()
-    else:
-        raise Exception(str(type(object))+" is not expected :(")
-
-
-
-
-
-
-def develope():
-    global db
-    print('delete me')
-    client = MongoClient('mongodb://localhost:18372')
-    db = client["291db"]
+    dblp.create_index([("title", "text"),("authors","text"),("abstract","text"),("venue","text"),("year","text")],weights={"authors":90000,"title":1,"abstract":1,"venue":1,"year":1})
+    dblp.create_index([("authors", 1)])
+    dblp.create_index([("references", 1)])
 
 def main():
+
     connect()
-    #develope()
-    optimize()
+    indexing()
+
 
 
 if __name__ == "__main__":
