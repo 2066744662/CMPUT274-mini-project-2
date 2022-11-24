@@ -89,13 +89,26 @@ def search_authors():
 def list_venues():
     venues = {}
     order = 1
+    """user input to show top N venues"""
     amount = int(input("Please enter a number 'N' to see top N venues: "))
-    for venue in dblp.aggregate([{"$group": {"_id": "$venue", "Number_of_articles": {"$sum": 1}}}, {"$sort": {'Number_of_articles': -1}}, {"$limit": amount+1}]):
-        venues.update({venue['_id']: [venue['Number_of_articles'], ]})
+    for venue in dblp.aggregate(
+            [{"$group": {"_id": "$venue", "Number_of_articles": {"$sum": 1}, "id": {"$first": "$id"}}},{"$limit": amount + 1}]):
+        """{venue名称：[venue文章数, 引用venue文章的文章数]}"""
+        venues.update({venue['_id']: [venue['Number_of_articles'], 0]})
     del venues['']
-    for venue, total in zip(list(venues.keys()),list(venues.values())):
-        print(venue)
-        print(order, ". Venue:", venue, "\n    Number of articles: ", total[0])
+    dblp.articles.drop()
+    """query of number of articles that reference a paper in that venue"""
+    for venue in venues.keys():
+        for temp in dblp.find({'venue': venue}, {'venue': 1, 'id': 1}):
+            dblp.articles.insert_one(temp)
+    for article in dblp.articles.find():
+        for x in dblp.find({'references': {'$regex': article['id']}}):
+            venues[article['venue']][1] += 1
+    """sort by number of citations"""
+    sorted_venues = sorted(venues.items(), key=lambda venues: venues[1][1], reverse=True)
+    """print out results"""
+    for venue in sorted_venues:
+        print(order, ". Venue:", venue[0], "\n    Number of articles: ", venue[1][0], "\n    Number of articles that reference a paper in this venue: ", venue[1][1])
         order += 1
 
 
