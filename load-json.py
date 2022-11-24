@@ -2,13 +2,12 @@ from os import system
 
 import pymongo
 global db
-
+import bson
 def connect():
     """
     Connect to MongoDB on given port and create 291db database.
     :param port: port number (string)
     :param filename: file name (string)
-    :return: (Collection) pointing to the dblp collection
     """
     global db
     port = input("Input port number: ")
@@ -20,7 +19,6 @@ def connect():
     if "dblp" in collist:
         db["dblp"].drop()
     system("mongoimport --port=" + port + " --db=291db --collection=dblp --file=" + filename)
-    return db["dblp"]
 
 def indexing():
     """

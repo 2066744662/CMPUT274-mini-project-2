@@ -146,7 +146,7 @@ def add_article():
             record = {"id": id,
                     "title": title,
                     "authors": authors,
-                    "year": int(year),
+                    "year": str(int(year)),
                     "abstract": None,
                     "venue": None,
                     "references": [],
@@ -192,7 +192,7 @@ def print_article(article, fields=[], div=" | "):
     :param div: optional:(string) divider between each key and value pair
     """
     if not fields:
-        fields = article.keys()
+        fields = list(article.keys())
     for f in fields[:len(fields) - 1]:
         if f == "_id":
             continue
@@ -213,17 +213,17 @@ if __name__ == "__main__":
             "an article\n5. End")
         print("_" * 30)
         i = input("Please choose a number (1-5): ")
-        match i:
-            case "1":
-                search_articles()
-            case "2":
-                search_authors()
-            case "3":
-                list_venues()
-            case "4":
-                add_article()
-            case "5":
-                break
-            case _:
-                print("Error input.")
+        if i == "1":
+            search_articles()
+        elif i == "2":
+            search_authors()
+        elif i == "3":
+            list_venues()
+        elif i == "4":
+            add_article()
+        elif i == "5":
+            break
+        else:
+            print("Error input.")
+
     print("End.")
