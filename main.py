@@ -29,11 +29,14 @@ def search_articles():
             order += 1
 
     """show results with order number to users for selection"""
+    if not articles.keys():
+        print("No results found!")
+        return
     print("Article Matches: ")
     field2print = ["id", "title", "year", "venue"]
     for obj_id, article in zip(list(articles.keys()), list(articles.values())):
         print(obj_id, end=". ")
-        print_article(article,field2print)
+        print_article(article, field2print)
     """user selection"""
     user = input("Please enter order # of the article you would like to select: ")
     selection = articles[int(user)]
@@ -44,17 +47,12 @@ def search_articles():
     print_article(selection, div="\n")
 
     """info of all references of selected article"""
-    references = {}
-    order = 1
-    for ref_id in selection['references']:
-        for article in articles.values():
-            if 'references' in article.keys() and ref_id in article['references']:
-                references.update({order: article})
-                order += 1
     print("---------------------------------------")
-    print("References:")
-    for order, reference in zip(list(references.keys()), list(references.values())):
-        print(order, ". ", reference)
+    print("This article is referenced by:")
+    results = dblp.find({"references": selection["id"]})
+    for r in results:
+        print_article(r,["id","title","year"])
+    print("---------------------------------------")
 
 
 def search_authors():
@@ -106,7 +104,7 @@ def add_article():
         authors.append(author)
     year = input("Year: ")
     while True:
-        record = {"_id": id,
+        record = {"id": id,
                   "title": title,
                   "authors": authors,
                   "year": year,
@@ -150,12 +148,13 @@ def print_article(article, fields=[], div=" | "):
     :param div: optional:(string) divider between each key and value pair
     """
     if not fields:
-        for key, value in article.items():
-            print(key, ' : ', value, end=div)
-    else:
-        for f in fields:
-            print(f, ' : ', article[f], end=div)
+        fields = article.keys()
+    for f in fields:
+        if f == "_id":
+            continue
+        print(f, ' : ', article[f], end=div)
     print("\n")
+
 
 if __name__ == "__main__":
     port = input("Please input port number: ")
