@@ -1,8 +1,8 @@
 """MAY NEED MORE TESTS"""
 import re
-
+import heapq
 from pymongo import MongoClient
-import pymongo
+
 
 global dblp
 
@@ -51,7 +51,7 @@ def search_articles():
     print("This article is referenced by:")
     results = dblp.find({"references": selection["id"]})
     for r in results:
-        print_article(r,["id","title","year"])
+        print_article(r, ["id", "title", "year"])
     print("---------------------------------------")
 
 
@@ -59,10 +59,10 @@ def search_authors():
     keyword = input("Please enter the keyword you would like to search: ")
     """search all authors contained the keyword"""
     authors = {}
-    #results = dblp.find({'authors': {"$regex": re_key}},{'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1)
-    results = dblp.find({"$text":{"$search": keyword}},{"score": { "$meta": "textScore"}}).sort('year', -1)
+    # results = dblp.find({'authors': {"$regex": re_key}},{'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1)
+    results = dblp.find({"$text": {"$search": keyword}}, {"score": {"$meta": "textScore"}}).sort('year', -1)
     for article in results:
-        if article["score"] < 10:
+        if article["score"] < 10:  # This means the keyword is not in author name
             continue
         for author in article['authors']:
             if bool(re.search(keyword, author, re.IGNORECASE)):
@@ -76,45 +76,51 @@ def search_authors():
     authors_keys = list(authors.keys())
     for author in authors_keys:
         c += 1
-        print(c,": Name: ", author, " # of publications: ", len(authors[author]))
+        print(c, ": Name: ", author, " # of publications: ", len(authors[author]))
         print("---------------------------------------")
     """print out all publications of selected author"""
     while True:
         selection = input("Please enter the index of author you would like to select: ")
         try:
-            articles = authors[authors_keys[int(selection)-1]]
+            articles = authors[authors_keys[int(selection) - 1]]
             break
         except ValueError:
             print("Please input a number")
         except IndexError as e:
             print(e)
     for article in articles:
-        print_article(article,["title","year","venue"],div="\n")
+        print_article(article, ["title", "year", "venue"], div="\n")
         print("")
+
 
 def list_venues():
     venues = {}
     order = 1
     """user input to show top N venues"""
     amount = int(input("Please enter a number 'N' to see top N venues: "))
-    for venue in dblp.aggregate(
-            [{"$group": {"_id": "$venue", "Number_of_articles": {"$sum": 1}, "id": {"$first": "$id"}}},{"$limit": amount + 1}]):
+    results = dblp.aggregate([{"$sortByCount":"$venue"},{"$limit": max(amount*2, 10)}])
+    for venue in results:
+        if venue["_id"] == "":
+            continue
         """{venue名称：[venue文章数, 引用venue文章的文章数]}"""
-        venues.update({venue['_id']: [venue['Number_of_articles'], 0]})
-    del venues['']
-    dblp.articles.drop()
+        venues.update({venue['_id']: [venue['count'], 0]})
+
     """query of number of articles that reference a paper in that venue"""
     for venue in venues.keys():
-        for temp in dblp.find({'venue': venue}, {'venue': 1, 'id': 1}):
-            dblp.articles.insert_one(temp)
-    for article in dblp.articles.find():
-        for x in dblp.find({'references': {'$regex': article['id']}}):
-            venues[article['venue']][1] += 1
+        results = dblp.find({"venue":venue})
+        ids = set()
+        for result in results:
+            results2 = dblp.find({"references":result["id"]})
+            for result2 in results2:
+                if result2["id"] not in ids:
+                    ids.add(result2["id"])
+        venues[venue][1] = len(ids)
     """sort by number of citations"""
-    sorted_venues = sorted(venues.items(), key=lambda venues: venues[1][1], reverse=True)
+    sorted_venues = heapq.nlargest(amount, venues.items(), key=lambda venues: venues[1][1])
     """print out results"""
     for venue in sorted_venues:
-        print(order, ". Venue:", venue[0], "\n    Number of articles: ", venue[1][0], "\n    Number of articles that reference a paper in this venue: ", venue[1][1])
+        print(order, ". Venue:", venue[0], "\n    Number of articles: ", venue[1][0],
+              "\n    Number of articles that reference a paper in this venue: ", venue[1][1])
         order += 1
 
 
@@ -136,16 +142,20 @@ def add_article():
             authors.append(author)
     year = input("Year: ")
     while True:
-        record = {"id": id,
-                  "title": title,
-                  "authors": authors,
-                  "year": year,
-                  "abstract": None,
-                  "venue": None,
-                  "references": [],
-                  "n_citations": 0
-                  }
-        results = dblp.count_documents({"id":id})
+        try:
+            record = {"id": id,
+                    "title": title,
+                    "authors": authors,
+                    "year": int(year),
+                    "abstract": None,
+                    "venue": None,
+                    "references": [],
+                    "n_citations": 0
+                    }
+        except ValueError:
+            year = input("Year is not a number. Input year again: ")
+            continue
+        results = dblp.count_documents({"id": id})
         if results > 0:
             id = input("key is not unique. Input a unique key: ")
         else:
@@ -183,7 +193,7 @@ def print_article(article, fields=[], div=" | "):
     """
     if not fields:
         fields = article.keys()
-    for f in fields[:len(fields)-1]:
+    for f in fields[:len(fields) - 1]:
         if f == "_id":
             continue
         try:
