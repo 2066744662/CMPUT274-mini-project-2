@@ -24,16 +24,16 @@ def search_articles():
     order = 1
     """search in database and add to collection of search results"""
     for article in dblp.find({"$text": {"$search": keywords}}):
-        if article not in articles.values():
+        if True:  # article not in articles.values():
             articles.update({order: article})
             order += 1
 
     """show results with order number to users for selection"""
     print("Article Matches: ")
+    field2print = ["id", "title", "year", "venue"]
     for obj_id, article in zip(list(articles.keys()), list(articles.values())):
-        del article['_id']
-        print(obj_id, ". ", article)
-
+        print(obj_id, end=". ")
+        print_article(article,field2print)
     """user selection"""
     user = input("Please enter order # of the article you would like to select: ")
     selection = articles[int(user)]
@@ -41,7 +41,7 @@ def search_articles():
     """info of selected article included abstract & venue"""
     print("---------------------------------------")
     print("Selected Article: ")
-    print(selection)
+    print_article(selection, div="\n")
 
     """info of all references of selected article"""
     references = {}
@@ -56,13 +56,15 @@ def search_articles():
     for order, reference in zip(list(references.keys()), list(references.values())):
         print(order, ". ", reference)
 
+
 def search_authors():
     keyword = input("Please enter the keyword you would like to search: ")
     re_key = re.compile(keyword, re.IGNORECASE)
 
     """search all authors contained the keyword"""
     authors = {}
-    for article in dblp.find({'authors': {"$regex": re_key}}, {'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1):
+    for article in dblp.find({'authors': {"$regex": re_key}},
+                             {'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1):
         for author in article['authors']:
             if bool(re.search(keyword, author, re.IGNORECASE)):
                 authors.update({article['title']: article})
@@ -84,7 +86,8 @@ def search_authors():
     selection = input("Please enter the name of author you would like to select: ")
     for article in dblp.find({'authors': {"$regex": selection}}, {'_id': 0, 'title': 1, 'year': 1, 'venue': 1}):
         print(article)
-        
+
+
 def list_venues():
     pass
 
@@ -118,6 +121,7 @@ def add_article():
         except pymongo.errors.DuplicateKeyError:
             id = input("key is not unique. Input a unique key: ")
 
+
 def connect(port):
     """
     connect to the Mongodb dblp collection, save into global variable
@@ -137,14 +141,31 @@ def connect(port):
         raise Exception("dblp not found")
     dblp = db["dblp"]
 
+
+def print_article(article, fields=[], div=" | "):
+    """
+    print a dict in a pretty way
+    :param article: (dict) object to print
+    :param fields: optional:(list<string>) keys in the dict to print, empty list to print everything
+    :param div: optional:(string) divider between each key and value pair
+    """
+    if not fields:
+        for key, value in article.items():
+            print(key, ' : ', value, end=div)
+    else:
+        for f in fields:
+            print(f, ' : ', article[f], end=div)
+    print("\n")
+
 if __name__ == "__main__":
     port = input("Please input port number: ")
     connect(port)
-    print("_"*30)
-    print("Welcome to the document store!\n1. Search for articles\n2. Search for authors\n3. List the venues\n4. Add "
-          "an article\n5. End")
-    print("_"*30)
     while True:
+        print("_" * 30)
+        print(
+            "Welcome to the document store!\n1. Search for articles\n2. Search for authors\n3. List the venues\n4. Add "
+            "an article\n5. End")
+        print("_" * 30)
         i = input("Please choose a number (1-5): ")
         match i:
             case "1":
