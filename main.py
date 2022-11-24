@@ -87,7 +87,16 @@ def search_authors():
 
 
 def list_venues():
-    pass
+    venues = {}
+    order = 1
+    amount = int(input("Please enter a number 'N' to see top N venues: "))
+    for venue in dblp.aggregate([{"$group": {"_id": "$venue", "Number_of_articles": {"$sum": 1}}}, {"$sort": {'Number_of_articles': -1}}, {"$limit": amount+1}]):
+        venues.update({venue['_id']: [venue['Number_of_articles'], ]})
+    del venues['']
+    for venue, total in zip(list(venues.keys()),list(venues.values())):
+        print(venue)
+        print(order, ". Venue:", venue, "\n    Number of articles: ", total[0])
+        order += 1
 
 
 def add_article():
