@@ -13,11 +13,13 @@ def connect():
     global db
     port = input("Input port number: ")
     filename = input("Input filename: ")
+
     client = pymongo.MongoClient('mongodb://localhost:' + port)
     db = client["291db"]
     collist = db.list_collection_names()
     if "dblp" in collist:
         db["dblp"].drop()
+    system("mongoimport --port=" + port + " --db=291db --collection=dblp --file=" + filename)
     return db["dblp"]
 
 def indexing():
@@ -30,7 +32,6 @@ def indexing():
     dblp.create_index([("references", 1)])
 
 def main():
-
     connect()
     indexing()
 
