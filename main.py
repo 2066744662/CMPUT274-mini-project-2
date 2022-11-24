@@ -79,6 +79,9 @@ def search_authors():
         print(c, ": Name: ", author, " # of publications: ", len(authors[author]))
         print("---------------------------------------")
     """print out all publications of selected author"""
+    if c == 0:
+        print('None')
+        return
     while True:
         selection = input("Please enter the index of author you would like to select: ")
         try:
