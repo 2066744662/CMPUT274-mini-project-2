@@ -56,7 +56,7 @@ def search_articles():
 
 
 def search_authors():
-        keyword = input("Please enter the keyword you would like to search: ")
+    keyword = input("Please enter the keyword you would like to search: ")
     """search all authors contained the keyword"""
     authors = {}
     #results = dblp.find({'authors': {"$regex": re_key}},{'_id': 1, 'authors': 1, 'title': 1, 'venue': 1, 'year': 1}).sort('year', -1)
